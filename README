@@ -1,0 +1,27 @@
+* Formatting Tools, Version 1 (BETA)                    -*- outline -*-
+
+This directory contains a library for formatting output in relatively
+portable Scheme.
+
+This code is in a preliminary state, and only lightly tested.  It is
+not very fast, and its design is unfinished, because it lacks any sort
+of backward information flow, rendering it useless for such purposes as
+pretty-printing.  There is no documentation.
+
+To load this library into Scheme48, load s48-interfaces.scm and
+s48-packages.scm into the config package.
+
+This library depends on
+
+- SRFI 6, Basic String Ports,
+- SRFI 8, RECEIVE,
+- SRFI 9, DEFINE-RECORD-TYPE,
+- SRFI 23, ERROR,
+- a (WRITE-STRING <string> <output-port>) procedure that can be defined
+  simply to be DISPLAY, and
+- a procedure (NO-OP <value>) that returns <value>.
+
+The intent of the NO-OP procedure is that the compiler not integrate
+its definition in-line, and thereby force <value> to be evaluated, so
+that any free variables in <value> will be included in closure
+environments for later debugging reference.
