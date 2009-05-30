@@ -234,23 +234,34 @@
    (if initial-column
        (format-with-property 'COLUMN initial-column)
        (format-null-option))
+   (format-with-property 'BROKEN? #f)
    (format-with-string-handler line-tracking-string-handler)
    (format-with-char-handler line-tracking-char-handler)
    (format-with-soft-break-handler line-tracking-soft-break-handler)
    (format-with-line-break-handler line-tracking-line-break-handler)
    (format-with-line-start-handler line-tracking-line-start-handler)))
 
+(define (track-string-break state string)
+  (let ((length (string-length string)))
+    (if (> length 0)
+        (track-char-break state (string-ref string (- length 1)))
+        state)))
+
+(define (track-char-break state char)
+  (format-state/insert-property state 'BROKEN? (char-break? char)))
+
 (define (line-tracking-string-handler state string)
   (write-string string (format-state/output-port state))
-  (let ((line (format-state/line state))
-        (column (format-state/column state)))
-    (cond ((and line column)
-           (track-line-and-column state string line column))
-          (line
-           (track-line state string line))
-          (column
-           (track-column state string column))
-          (else state))))
+  (let ((state (track-string-break state string)))
+    (let ((line (format-state/line state))
+          (column (format-state/column state)))
+      (cond ((and line column)
+             (track-line-and-column state string line column))
+            (line
+             (track-line state string line))
+            (column
+             (track-column state string column))
+            (else state)))))
 
 (define (track-line-and-column state string line column)
   (let loop ((index 0) (line line) (column column))
@@ -285,17 +296,20 @@
 
 (define (line-tracking-char-handler state char)
   (write-char char (format-state/output-port state))
-  (if (char-line-break? char)
-      (format-state/reset-column (format-state/advance-line state))
-      (format-state/advance-column state)))
+  (let ((state (track-char-break state char)))
+    (if (char-line-break? char)
+        (format-state/reset-column (format-state/advance-line state))
+        (format-state/advance-column state))))
 
 (define (line-tracking-soft-break-handler state)
-  (let ((column (format-state/column state)))
-    (if column
-        (if (positive? column)
-            (line-tracking-char-handler state #\space)
-            state)
-        (line-tracking-char-handler state #\space))))
+  (if (format-state/lookup-property state 'BROKEN? #f)
+      state
+      (let ((column (format-state/column state)))
+        (if column
+            (if (positive? column)
+                (line-tracking-char-handler state #\space)
+                state)
+            (line-tracking-char-handler state #\space)))))
 
 (define (line-tracking-line-break-handler state)
   (newline (format-state/output-port state))
