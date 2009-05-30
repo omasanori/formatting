@@ -57,8 +57,6 @@
     format-with-soft-break-handler
     format-with-string-handler
     format-with-tab-width
-    space-indenter
-    tab-indenter
     ))
 
 (define-interface format-state-interface
