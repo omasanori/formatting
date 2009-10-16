@@ -769,13 +769,30 @@
      (no-op name)
      (apply-format format state))))
 
+(define-syntax named-format
+  (syntax-rules ()
+    ((NAMED-FORMAT name format)
+     ;; Try our hardest to associate the name with debugging
+     ;; information: name both lambdas here, and put it in their
+     ;; environments.
+     (LET* ((THE-NAME 'name)
+            (THE-FORMAT
+             (FORMAT:DELAYED
+              (LETREC ((name (LAMBDA () (NO-OP THE-NAME) format)))
+                name))))
+       (DEFINE (name STATE)
+         (NO-OP THE-NAME)
+         (APPLY-FORMAT THE-FORMAT STATE))
+       (PROCEDURE->FORMAT name)))))
+
 (define-syntax define-format
   (syntax-rules ()
     ((DEFINE-FORMAT (name . bvl) format)
      (DEFINE (name . bvl)
-       (FORMAT:NAMED 'name (FORMAT:DELAYED (LAMBDA () format)))))
+       (NAMED-FORMAT name format)))
     ((DEFINE-FORMAT name format)
-     (DEFINE name (FORMAT:NAMED 'name (FORMAT:DELAYED (LAMBDA () format)))))))
+     (DEFINE name
+       (NAMED-FORMAT name format)))))
 
 ;;;; Random Utilities
 
